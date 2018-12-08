@@ -2,6 +2,7 @@
 
 const test = require('tape')
 const bc = require('../index.js')
+const BlockchainFactory = bc.BlockchainFactory
 const Block = require('ethereumjs-block')
 const Common = require('ethereumjs-common')
 const async = require('async')
@@ -13,7 +14,7 @@ const rlp = ethUtil.rlp
 
 test('blockchain test', async function (t) {
   t.plan(73)
-  var blockchain = await bc.BlockchainFactory()
+  var blockchain = await BlockchainFactory()
   // await blockchain._awaitDB()
   // blockchain._init((err) => {
   //   if (err) throw err
@@ -29,18 +30,18 @@ test('blockchain test', async function (t) {
 
     function (done) {
       blockchain.getHead(function (err, head) {
-        console.log("noot")
+        //console.log("noot")
         if (err) return done(err)
         t.ok(true, 'should not crash on getting head of a blockchain without a genesis')
         done()
       })
     },
-    function initialization (done) {
+    async function initialization (done) {
       const common = new Common('ropsten')
-      t.throws(function () { new Blockchain({ chain: 'ropsten', common: common }) }, /not allowed!$/, 'should throw on initialization with chain and common parameter') // eslint-disable-line
+      t.throws(async function () { await BlockchainFactory({ chain: 'ropsten', common: common }) }, /not allowed!$/, 'should throw on initialization with chain and common parameter') // eslint-disable-line
 
-      const bc0 = new Blockchain({ chain: 'ropsten' })
-      const bc1 = new Blockchain({ common: common })
+      const bc0 = await BlockchainFactory({ chain: 'ropsten' })
+      const bc1 = await BlockchainFactory({ common: common })
       async.parallel([
         (cb) => bc0.getHead(cb),
         (cb) => bc1.getHead(cb)
@@ -51,11 +52,11 @@ test('blockchain test', async function (t) {
         done()
       })
     },
-    function alternateConstructors (done) {
+    async function alternateConstructors (done) {
       var db = level()
-      var blockchain = new Blockchain(db)
+      var blockchain = await BlockchainFactory({db: db})
       t.equals(db, blockchain.db, 'support constructor with db parameter')
-      blockchain = new Blockchain({detailsDb: db, blockDb: db})
+      blockchain = await BlockchainFactory({detailsDb: db, blockDb: db})
       t.equals(db, blockchain.db, 'support blockDb and detailsDb params')
       t.notOk(blockchain.detailsDb, 'ignore detailsDb param')
       done()

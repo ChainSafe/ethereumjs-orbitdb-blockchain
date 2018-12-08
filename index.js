@@ -103,13 +103,13 @@ Blockchain.prototype = {
   }
 }
 
-const BlockchainFactory = async () => {
-  let blockchain = new Blockchain()
+const BlockchainFactory = async (opts) => {
+  let blockchain = new Blockchain(opts)
   blockchain._initDB()
   await sleep()
   blockchain._init((err) => {
     if (err) throw err
-    console.log("init???")
+    //console.log("init???")
     blockchain._initLock.go()
   })
   return blockchain
@@ -130,10 +130,9 @@ Blockchain.prototype._initDB = async function() {
     const orbitdb = new OrbitDB(ipfs)
 
     // Create / Open a database
-
     const db = await orbitdb.keyvalue('blockchain')
     await db.load()
-    
+
     db.batch = (ops) => {
         ops.map(async(op) => {
           if(op.type == "put") {
@@ -148,11 +147,11 @@ Blockchain.prototype._initDB = async function() {
 
     // wrap orbitdb.get to look like leveldb.get
     db._get = (key, opts, cb) => {
-      console.log(key)
+      //console.log(key)
       // if(opts.keyEncoding == 'binary')
       // else if(opts.keyEncoding == 'json')
       let val = db.get(key)
-      console.log(val)
+      //console.log(val)
       if(!val) return cb(new Error(`${key} not found`), null)
       cb(null, val)
     }
@@ -175,36 +174,54 @@ Blockchain.prototype._initDB = async function() {
 Blockchain.prototype._init = async function (cb) {
   const self = this
 
-  async.waterfall([
-    (cb) => self._numberToHash(new BN(0), cb),
-    (hash, cb) => console.log(hash),
-    getHeads
-  ], (err) => {
-    if (err) {
-      // if genesis block doesn't exist, create one
-      return self._setCanonicalGenesisBlock((err) => {
-        console.log("noot")
-        if (err) return cb(err)
-        self._heads = {}
-        self._headHeader = self._genesis
-        self._headBlock = self._genesis
-        cb()
-      })
-    }
-    cb()
-  })
+  //async.waterfall([
+    self._numberToHash(new BN(0), (err, hash) => {
+      if (err) {
+        // if genesis block doesn't exist, create one
+
+        self._setCanonicalGenesisBlock((err) => {
+          //console.log("noot")
+          if (err) return cb(err)
+          self._heads = {}
+          self._headHeader = self._genesis
+          self._headBlock = self._genesis
+
+          cb()
+        })
+
+        getHeads(hash, cb)
+      }
+    })
+    //(hash, cb) => console.log(hash),
+    //getHeads
+  //], (err) => {
+    // if (err) {
+    //   // if genesis block doesn't exist, create one
+    //   return self._setCanonicalGenesisBlock((err) => {
+    //     console.log("noot")
+    //     if (err) return cb(err)
+    //     self._heads = {}
+    //     self._headHeader = self._genesis
+    //     self._headBlock = self._genesis
+    //     cb()
+    //   })
+    // }
+    // cb()
+  //})
 
   function getHeads (genesisHash, cb) {
     self._genesis = genesisHash
     async.series([
-      // load verified iterator heads
+      // load verified iterator headss
       (cb) => self.db._get('heads', {
         keyEncoding: 'binary',
         valueEncoding: 'json'
       }, (err, heads) => {
-        console.log("noot2")
         if (err) heads = {}
-        Object.keys(heads).map(key => { heads[key] = Buffer.from(heads[key]) })
+        Object.keys(heads).map(key => { 
+          //console.log(key)
+          //heads[key] = Buffer.from(heads[key]) 
+        })
         self._heads = heads
         cb()
       }),
@@ -568,16 +585,27 @@ Blockchain.prototype.getBlock = function (blockTag, cb) {
 Blockchain.prototype._getBlock = function (blockTag, cb) {
   const self = this
 
+  let data = blockTag.name.data
+  let tempData = new Buffer.from(data)
+  // data.map((byte) => {
+  //   tempData.push(byte)
+  // })
+  //console.log(tempData)
+
+  //console.log(typeof(tempData))
+
+  //if(blockTag) blockTag = blockTag.name.data
   // determine BlockTag type
   if (Number.isInteger(blockTag)) {
     blockTag = new BN(blockTag)
   }
   async.waterfall([
     (cb) => {
-      if (Buffer.isBuffer(blockTag)) {
-        self._hashToNumber(blockTag, (err, number) => {
+      //if (Buffer.isBuffer(blockTag.name.data)) {
+      if(blockTag.name.type == 'Buffer') {
+        self._hashToNumber(tempData, (err, number) => {
           if (err) return cb(err)
-          cb(null, blockTag, number)
+          cb(null, tempData, number)
         })
       } else if (BN.isBN(blockTag)) {
         self._numberToHash(blockTag, (err, hash) => {
@@ -1093,7 +1121,7 @@ Blockchain.prototype._numberToHash = function (number, cb) {
     keyEncoding: 'binary',
     valueEncoding: 'binary'
   }, (err, hash) => {
-    console.log(hash)
+    //console.log(err)
     if (err) return cb(err)
     self._cache.numberToHash.set(key, hash)
     cb(null, hash)
