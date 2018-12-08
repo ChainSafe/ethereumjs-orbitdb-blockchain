@@ -28,6 +28,7 @@ test('blockchain test', async function (t) {
 
     function (done) {
       blockchain.getHead(function (err, head) {
+        console.log("noot")
         if (err) return done(err)
         t.ok(true, 'should not crash on getting head of a blockchain without a genesis')
         done()

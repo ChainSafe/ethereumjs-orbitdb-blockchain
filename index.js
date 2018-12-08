@@ -105,16 +105,13 @@ Blockchain.prototype = {
   }
 }
 
-const sleep = (ms) => {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
 const BlockchainFactory = async () => {
   let blockchain = new Blockchain()
   await blockchain._initDB()
   blockchain._initLock = new Stoplight()
   blockchain._init(function (err) {
     if (err) throw err
+    console.log("init???")
     blockchain._initLock.go()
   })
   return blockchain
