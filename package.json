@@ -1,6 +1,6 @@
 {
   "name": "ethereumjs-orbitdb-blockchain",
-  "version": "3.3.1",
+  "version": "0.0.1",
   "description": "A module to store and interact with blocks + orbitdb",
   "main": "index.js",
   "scripts": {
