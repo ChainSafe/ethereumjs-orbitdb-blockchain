@@ -1,7 +1,7 @@
 'use strict'
 
 const test = require('tape')
-const Blockchain = require('..')
+const bc = require('../index.js')
 const Block = require('ethereumjs-block')
 const Common = require('ethereumjs-common')
 const async = require('async')
@@ -13,9 +13,13 @@ const rlp = ethUtil.rlp
 
 test('blockchain test', async function (t) {
   t.plan(73)
-  var blockchain = new Blockchain()
-  await blockchain._awaitDB()
-  blockchain._init()
+  var blockchain = await bc.BlockchainFactory()
+  // await blockchain._awaitDB()
+  // blockchain._init((err) => {
+  //   if (err) throw err
+  //   console.log("init blockchain")
+  // })
+  if (blockchain) console.log("blockchain initialized")
   var genesisBlock
   var blocks = []
   var forkHeader

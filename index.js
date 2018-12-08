@@ -32,8 +32,6 @@ const bodyKey = (n, hash) => Buffer.concat([bodyPrefix, bufBE8(n), hash])
 const numberToHashKey = n => Buffer.concat([headerPrefix, bufBE8(n), numSuffix])
 const hashToNumberKey = hash => Buffer.concat([blockHashPrefix, hash])
 
-module.exports = Blockchain
-
 // IPFS options for OrbitDB
 const ipfsOptions = {
   EXPERIMENTAL: {
@@ -66,10 +64,10 @@ function Blockchain (opts) {
   self.db = opts.db || opts.blockDb
 
   // defaults
-  self._initDB((err) => {  
-    if (err) throw err
-    if(self.db) console.log("db started")
-  })
+  // self._initDB((err) => {  
+  //   if (err) throw err
+  //   if(self.db) console.log("db started")
+  // })
 
   self.validate = (opts.validate === undefined ? true : opts.validate)
   self.ethash = self.validate ? new Ethash(self.db) : null
@@ -86,7 +84,7 @@ function Blockchain (opts) {
   }
   self._initDone = false
   self._putSemaphore = semaphore(1)
-  self._initLock = new Stoplight()
+  // self._initLock = new Stoplight()
   // self._init(function (err) {
   //   if (err) throw err
   //   self._initLock.go()
@@ -111,11 +109,21 @@ const sleep = (ms) => {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-Blockchain.prototype._awaitDB = async () => {
-  while(!this.db) await sleep(1000)
+const BlockchainFactory = async () => {
+  let blockchain = new Blockchain()
+  await blockchain._initDB()
+  blockchain._initLock = new Stoplight()
+  blockchain._init(function (err) {
+    if (err) throw err
+    blockchain._initLock.go()
+  })
+  return blockchain
 }
 
-Blockchain.prototype._initDB = function (cb) {
+module.exports = { Blockchain, BlockchainFactory }
+
+
+Blockchain.prototype._initDB = async function() {
   const self = this
 
   ipfs.on('error', (e) => console.error(e))
@@ -124,14 +132,12 @@ Blockchain.prototype._initDB = function (cb) {
 
     // Create / Open a database
 
-    const db = await orbitdb.keyvalue('noot')
+    const db = await orbitdb.keyvalue('blockchain')
     await db.load()
 
     self.db = self.db ? self.db : db
 
     if(self.db) console.log("db started")
-
-    cb(null)
 
     // Listen for updates from peers
     // db.events.on('replicated', (address) => {
@@ -146,6 +152,9 @@ Blockchain.prototype._initDB = function (cb) {
     // const result = db.get("hello")
     // console.log(JSON.stringify(result, null, 2))
   })
+
+  // todo: this is sketchy, fix this later
+  return new Promise(resolve => setTimeout(resolve, 3000))
 }
 
 /**
