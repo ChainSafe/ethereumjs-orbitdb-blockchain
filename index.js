@@ -179,6 +179,10 @@ Blockchain.prototype._initDB = async function() {
   // self.db = self.db ? self.db : db
 }
 
+Blockchain.prototype.closeDB = function() {
+  
+}
+
 /**
  * Fetches the meta info about the blockchain from the db. Meta info contains
  * hashes of the headerchain head, blockchain head, genesis block and iterator
