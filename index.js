@@ -180,7 +180,7 @@ Blockchain.prototype._initDB = async function() {
 }
 
 Blockchain.prototype.closeDB = function() {
-  
+  self.db.close();
 }
 
 /**
