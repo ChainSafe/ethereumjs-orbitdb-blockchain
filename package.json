@@ -1,7 +1,7 @@
 {
-  "name": "ethereumjs-blockchain",
+  "name": "ethereumjs-orbitdb-blockchain",
   "version": "3.3.1",
-  "description": "A module to store and interact with blocks",
+  "description": "A module to store and interact with blocks + orbitdb",
   "main": "index.js",
   "scripts": {
     "coverage": "nyc npm run test && nyc report --reporter=text-lcov > .nyc_output/lcov.info",
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ethereumjs/ethereumjs-blockchain.git"
+    "url": "git+https://github.com/chainsafesystems/ethereumjs-obitdb-blockchain.git"
   },
   "keywords": [
     "ethereum",
@@ -20,9 +20,9 @@
   "author": "mjbecze <mjbecze@gmail.com>",
   "license": "MPL-2.0",
   "bugs": {
-    "url": "https://github.com/ethereumjs/ethereumjs-blockchain/issues"
+    "url": "https://github.com/chainsafesystems/ethereumjs-orbitdb-blockchain/issues"
   },
-  "homepage": "https://github.com/ethereumjs/ethereumjs-blockchain#readme",
+  "homepage": "https://github.com/chainsafesystems/ethereumjs-orbitdb-blockchain#readme",
   "dependencies": {
     "async": "^2.6.1",
     "ethashjs": "~0.0.7",
