@@ -106,7 +106,7 @@ Blockchain.prototype = {
 const BlockchainFactory = async (opts) => {
   let blockchain = new Blockchain(opts)
   let db = await blockchain._initDB()
-  console.log(db);
+  //console.log(db);
   blockchain.db = blockchain.db ? blockchain.db : db
   if(!blockchain.db) throw new Error("no db!!!")
   else console.log("promise resolved!! yay")
@@ -180,8 +180,20 @@ Blockchain.prototype._initDB = async function() {
   // self.db = self.db ? self.db : db
 }
 
-Blockchain.prototype.close = function() {
-  self.db.close();
+Blockchain.prototype.close = async function() {
+
+  this.db.close();
+
+  let closeDB = async function(db) {
+    return new Promise(function(resolve, reject) {
+      db.events.on('closed', async () => {
+        console.log('orbit db was closed');
+        resolve();
+      })
+    });
+  }
+  
+  return closeDB(this.db);
 }
 
 /**

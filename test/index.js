@@ -24,11 +24,12 @@ test('blockchain test', async function (t) {
   blockchain.validate = false
   async.series([
 
-    function (done) {
-      blockchain.getHead(function (err, head) {
+    async function (done) {
+      blockchain.getHead(async function (err, head) {
         //console.log("noot")
         if (err) return done(err)
         t.ok(true, 'should not crash on getting head of a blockchain without a genesis')
+        await blockchain.close();
         done()
       })
     },
