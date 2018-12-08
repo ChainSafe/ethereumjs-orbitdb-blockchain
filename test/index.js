@@ -20,6 +20,7 @@ test('blockchain test', async function (t) {
   //   console.log("init blockchain")
   // })
   if (blockchain) console.log("blockchain initialized")
+
   var genesisBlock
   var blocks = []
   var forkHeader

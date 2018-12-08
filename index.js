@@ -1,3 +1,4 @@
+
 'use strict'
 
 const async = require('async')
@@ -84,11 +85,8 @@ function Blockchain (opts) {
   }
   self._initDone = false
   self._putSemaphore = semaphore(1)
-  // self._initLock = new Stoplight()
-  // self._init(function (err) {
-  //   if (err) throw err
-  //   self._initLock.go()
-  // })
+  self._initLock = new Stoplight()
+  //self._init()
 
 }
 
@@ -107,9 +105,9 @@ Blockchain.prototype = {
 
 const BlockchainFactory = async () => {
   let blockchain = new Blockchain()
-  await blockchain._initDB()
-  blockchain._initLock = new Stoplight()
-  blockchain._init(function (err) {
+  blockchain._initDB()
+  await sleep()
+  blockchain._init((err) => {
     if (err) throw err
     console.log("init???")
     blockchain._initLock.go()
@@ -118,6 +116,10 @@ const BlockchainFactory = async () => {
 }
 
 module.exports = { Blockchain, BlockchainFactory }
+
+const sleep = async () => {
+  return new Promise(resolve => setTimeout(resolve, 1500))
+}
 
 
 Blockchain.prototype._initDB = async function() {
@@ -132,26 +134,26 @@ Blockchain.prototype._initDB = async function() {
     const db = await orbitdb.keyvalue('blockchain')
     await db.load()
 
+    db.batch = (ops) => {
+        ops.map(async(op) => {
+          if(op.type == "put") {
+            let hash = await db.put(op.key, { name: op.value })
+            console.log(hash)            
+          } else if(op.type == "del") {
+            let hash = await db.put(op.key, { name: null })
+            console.log(hash)              
+          }
+
+        })
+    }
+
     self.db = self.db ? self.db : db
 
     if(self.db) console.log("db started")
-
-    // Listen for updates from peers
-    // db.events.on('replicated', (address) => {
-    //   console.log(db.iterator({ limit: -1 }).collect())
-    // })
-
-    // // Add an entry
-    // const hash = await db.put('hello', { name: "elizabeth is awesome" })
-    // console.log(hash)
-
-    // // Query
-    // const result = db.get("hello")
-    // console.log(JSON.stringify(result, null, 2))
   })
 
   // todo: this is sketchy, fix this later
-  return new Promise(resolve => setTimeout(resolve, 3000))
+ // return new Promise(resolve => setTimeout(resolve, 3000))
 }
 
 /**
@@ -160,11 +162,12 @@ Blockchain.prototype._initDB = async function() {
  * heads.
  * @method _init
  */
-Blockchain.prototype._init = function (cb) {
+Blockchain.prototype._init = async function (cb) {
   const self = this
 
   async.waterfall([
     (cb) => self._numberToHash(new BN(0), cb),
+    () => console.log("he'llya"),
     getHeads
   ], (err) => {
     if (err) {
@@ -1064,6 +1067,7 @@ Blockchain.prototype._hashToNumber = function (hash, cb) {
  */
 Blockchain.prototype._numberToHash = function (number, cb) {
   const self = this
+  //console.log("noot")
 
   if (number.ltn(0)) {
     return cb(new level.errors.NotFoundError())
@@ -1073,14 +1077,23 @@ Blockchain.prototype._numberToHash = function (number, cb) {
   if (hash) {
     return cb(null, hash)
   }
-  self.db.get(key, {
-    keyEncoding: 'binary',
-    valueEncoding: 'binary'
-  }, (err, hash) => {
-    if (err) return cb(err)
+  //console.log("noot2")
+  let val = self.db.get(key)
+  if (!val) {
+    cb(new Error(`${key} does not exist`), null)
+  } 
+  else {
     self._cache.numberToHash.set(key, hash)
     cb(null, hash)
-  })
+  }
+  // self.db.get(key, {
+  //   keyEncoding: 'binary',
+  //   valueEncoding: 'binary'
+  // }, (err, hash) => {
+  //   if (err) return cb(err)
+  //   self._cache.numberToHash.set(key, hash)
+  //   cb(null, hash)
+  // })
 }
 
 /**
