@@ -133,27 +133,28 @@ Blockchain.prototype._initDB = async function() {
 
     const db = await orbitdb.keyvalue('blockchain')
     await db.load()
-
+    
     db.batch = (ops) => {
         ops.map(async(op) => {
           if(op.type == "put") {
             let hash = await db.put(op.key, { name: op.value })
-            console.log(hash)            
+            //console.log(hash)            
           } else if(op.type == "del") {
             let hash = await db.put(op.key, { name: null })
-            console.log(hash)              
+            //console.log(hash)              
           }
-
         })
     }
 
-    db.get = (key, opts, cb) => {
-      //console.log(key)
+    // wrap orbitdb.get to look like leveldb.get
+    db._get = (key, opts, cb) => {
+      console.log(key)
+      // if(opts.keyEncoding == 'binary')
+      // else if(opts.keyEncoding == 'json')
       let val = db.get(key)
-      if(!val) cb(new Error(`${key} not found`), null)
-      else {
-        cb(null, val)
-      }
+      console.log(val)
+      if(!val) return cb(new Error(`${key} not found`), null)
+      cb(null, val)
     }
 
     self.db = self.db ? self.db : db
@@ -176,12 +177,13 @@ Blockchain.prototype._init = async function (cb) {
 
   async.waterfall([
     (cb) => self._numberToHash(new BN(0), cb),
-    //(hash, cb) => console.log("he'llya"),
+    (hash, cb) => console.log(hash),
     getHeads
   ], (err) => {
     if (err) {
       // if genesis block doesn't exist, create one
       return self._setCanonicalGenesisBlock((err) => {
+        console.log("noot")
         if (err) return cb(err)
         self._heads = {}
         self._headHeader = self._genesis
@@ -196,17 +198,18 @@ Blockchain.prototype._init = async function (cb) {
     self._genesis = genesisHash
     async.series([
       // load verified iterator heads
-      (cb) => self.db.get('heads', {
+      (cb) => self.db._get('heads', {
         keyEncoding: 'binary',
         valueEncoding: 'json'
       }, (err, heads) => {
+        console.log("noot2")
         if (err) heads = {}
         Object.keys(heads).map(key => { heads[key] = Buffer.from(heads[key]) })
         self._heads = heads
         cb()
       }),
       // load headerchain head
-      (cb) => self.db.get(headHeaderKey, {
+      (cb) => self.db._get(headHeaderKey, {
         keyEncoding: 'binary',
         valueEncoding: 'binary'
       }, (err, hash) => {
@@ -214,7 +217,7 @@ Blockchain.prototype._init = async function (cb) {
         cb()
       }),
       // load blockchain head
-      (cb) => self.db.get(headBlockKey, {
+      (cb) => self.db._get(headBlockKey, {
         keyEncoding: 'binary',
         valueEncoding: 'binary'
       }, (err, hash) => {
@@ -1060,7 +1063,7 @@ Blockchain.prototype._hashToNumber = function (hash, cb) {
   if (number) {
     return cb(null, new BN(number))
   }
-  self.db.get(key, {
+  self.db._get(key, {
     keyEncoding: 'binary',
     valueEncoding: 'binary'
   }, (err, number) => {
@@ -1076,7 +1079,6 @@ Blockchain.prototype._hashToNumber = function (hash, cb) {
  */
 Blockchain.prototype._numberToHash = function (number, cb) {
   const self = this
-  //console.log("noot")
 
   if (number.ltn(0)) {
     return cb(new level.errors.NotFoundError())
@@ -1086,20 +1088,12 @@ Blockchain.prototype._numberToHash = function (number, cb) {
   if (hash) {
     return cb(null, hash)
   }
-  //console.log("noot2")
-  // let val = self.db.get(key)
-  // if (!val) {
-  //   cb(new Error(`${key} does not exist`), null)
-  // } 
-  // else {
-  //   //console.log("noot")
-  //   self._cache.numberToHash.set(key, hash)
-  //   cb(null, hash)
-  // }
-  self.db.get(key, {
+
+  self.db._get(key, {
     keyEncoding: 'binary',
     valueEncoding: 'binary'
   }, (err, hash) => {
+    console.log(hash)
     if (err) return cb(err)
     self._cache.numberToHash.set(key, hash)
     cb(null, hash)
@@ -1135,7 +1129,7 @@ Blockchain.prototype._getHeader = function (hash, number, cb) {
     if (encodedHeader) {
       return cb(null, new Block.Header(rlp.decode(encodedHeader), {common: self._common}))
     }
-    self.db.get(key, {
+    self.db._get(key, {
       keyEncoding: 'binary',
       valueEncoding: 'binary'
     }, (err, encodedHeader) => {
@@ -1173,7 +1167,7 @@ Blockchain.prototype._getBody = function (hash, number, cb) {
     if (encodedBody) {
       return cb(null, rlp.decode(encodedBody))
     }
-    self.db.get(key, {
+    self.db._get(key, {
       keyEncoding: 'binary',
       valueEncoding: 'binary'
     }, (err, encodedBody) => {
@@ -1198,7 +1192,7 @@ Blockchain.prototype._getTd = function (hash, number, cb) {
     if (td) {
       return cb(null, new BN(rlp.decode(td)))
     }
-    self.db.get(key, {
+    self.db._get(key, {
       keyEncoding: 'binary',
       valueEncoding: 'binary'
     }, (err, td) => {
