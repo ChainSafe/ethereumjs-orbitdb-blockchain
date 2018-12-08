@@ -15,13 +15,13 @@ const rlp = ethUtil.rlp
 test('blockchain test', async function (t) {
   t.plan(73)
   var blockchain = await BlockchainFactory()
-  //setTimeout(blockchain._initDB(), 3000)
-  if (blockchain) console.log("blockchain initialized")
+  await blockchain.db.close()
+  //if (blockchain) console.log("blockchain initialize d")
 
   var genesisBlock
   var blocks = []
   var forkHeader
-  blockchain.validate = false
+ // blockchain.validate = false
   async.series([
 
     async function (done) {
@@ -32,8 +32,11 @@ test('blockchain test', async function (t) {
         await blockchain.close();
         done()
       })
+
+      //await blockchain.db.drop()
+      //return done
     },
-    async function initialization (done) {
+    async function initialization (done) {      
       const common = new Common('ropsten')
       //t.throws(async function () { await BlockchainFactory({ chain: 'ropsten', common: common }) }, /not allowed!$/, 'should throw on initialization with chain and common parameter') // eslint-disable-line
       //console.log(common);
