@@ -23,10 +23,8 @@ test('blockchain test', async function (t) {
   var forkHeader
  // blockchain.validate = false
   async.series([
-
     async function (done) {
       var blockchain = await BlockchainFactory()
-
       blockchain.getHead(async function (err, head) {
         console.log("noot")
         if (err) return done(err)
