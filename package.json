@@ -30,8 +30,10 @@
     "ethereumjs-common": "~0.6.0",
     "ethereumjs-util": "~6.0.0",
     "flow-stoplight": "^1.0.0",
+    "ipfs": "^0.33.1",
     "level-mem": "^3.0.1",
     "lru-cache": "^4.1.3",
+    "orbit-db": "^0.19.9",
     "safe-buffer": "^5.1.2",
     "semaphore": "^1.1.0"
   },

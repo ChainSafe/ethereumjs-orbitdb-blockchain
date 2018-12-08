@@ -11,9 +11,11 @@ const testData = require('./testdata.json')
 const BN = require('bn.js')
 const rlp = ethUtil.rlp
 
-test('blockchain test', function (t) {
+test('blockchain test', async function (t) {
   t.plan(73)
   var blockchain = new Blockchain()
+  await blockchain._awaitDB()
+  blockchain._init()
   var genesisBlock
   var blocks = []
   var forkHeader

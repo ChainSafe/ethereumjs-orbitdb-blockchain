@@ -3,7 +3,9 @@
 const async = require('async')
 const Stoplight = require('flow-stoplight')
 const semaphore = require('semaphore')
-const level = require('level-mem')
+//const level = require('level-mem')
+const OrbitDB = require('orbit-db')
+const IPFS = require('ipfs')
 const Block = require('ethereumjs-block')
 const Common = require('ethereumjs-common')
 const ethUtil = require('ethereumjs-util')
@@ -32,6 +34,16 @@ const hashToNumberKey = hash => Buffer.concat([blockHashPrefix, hash])
 
 module.exports = Blockchain
 
+// IPFS options for OrbitDB
+const ipfsOptions = {
+  EXPERIMENTAL: {
+    pubsub: true
+  }
+}
+
+// Create IPFS instance
+const ipfs = new IPFS(ipfsOptions)
+
 function Blockchain (opts) {
   opts = opts || {}
   const self = this
@@ -54,7 +66,11 @@ function Blockchain (opts) {
   self.db = opts.db || opts.blockDb
 
   // defaults
-  self.db = self.db ? self.db : level()
+  self._initDB((err) => {  
+    if (err) throw err
+    if(self.db) console.log("db started")
+  })
+
   self.validate = (opts.validate === undefined ? true : opts.validate)
   self.ethash = self.validate ? new Ethash(self.db) : null
   self._heads = {}
@@ -71,10 +87,11 @@ function Blockchain (opts) {
   self._initDone = false
   self._putSemaphore = semaphore(1)
   self._initLock = new Stoplight()
-  self._init(function (err) {
-    if (err) throw err
-    self._initLock.go()
-  })
+  // self._init(function (err) {
+  //   if (err) throw err
+  //   self._initLock.go()
+  // })
+
 }
 
 /**
@@ -88,6 +105,47 @@ Blockchain.prototype = {
       genesis: this._genesis
     }
   }
+}
+
+const sleep = (ms) => {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+Blockchain.prototype._awaitDB = async () => {
+  while(!this.db) await sleep(1000)
+}
+
+Blockchain.prototype._initDB = function (cb) {
+  const self = this
+
+  ipfs.on('error', (e) => console.error(e))
+  ipfs.on('ready', async () => {
+    const orbitdb = new OrbitDB(ipfs)
+
+    // Create / Open a database
+
+    const db = await orbitdb.keyvalue('noot')
+    await db.load()
+
+    self.db = self.db ? self.db : db
+
+    if(self.db) console.log("db started")
+
+    cb(null)
+
+    // Listen for updates from peers
+    // db.events.on('replicated', (address) => {
+    //   console.log(db.iterator({ limit: -1 }).collect())
+    // })
+
+    // // Add an entry
+    // const hash = await db.put('hello', { name: "elizabeth is awesome" })
+    // console.log(hash)
+
+    // // Query
+    // const result = db.get("hello")
+    // console.log(JSON.stringify(result, null, 2))
+  })
 }
 
 /**
