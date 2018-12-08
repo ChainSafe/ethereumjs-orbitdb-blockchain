@@ -105,64 +105,76 @@ Blockchain.prototype = {
 
 const BlockchainFactory = async (opts) => {
   let blockchain = new Blockchain(opts)
-  blockchain._initDB()
-  await sleep()
+  await blockchain._initDB()
+  if(!blockchain.db) throw new Error("no db!!!")
+
   blockchain._init((err) => {
     if (err) throw err
-    //console.log("init???")
     blockchain._initLock.go()
   })
+
+  if(!blockchain.db) {
+    sleep()
+  }
   return blockchain
 }
 
 module.exports = { Blockchain, BlockchainFactory }
 
 const sleep = async () => {
-  return new Promise(resolve => setTimeout(resolve, 1500))
+  return new Promise(resolve => setTimeout(resolve, 5000))
 }
 
 
 Blockchain.prototype._initDB = async function() {
   const self = this
 
-  ipfs.on('error', (e) => console.error(e))
-  ipfs.on('ready', async () => {
-    const orbitdb = new OrbitDB(ipfs)
+  let db
 
-    // Create / Open a database
-    const db = await orbitdb.keyvalue('blockchain')
-    await db.load()
+  return new Promise(function(resolve, reject) {
+    ipfs.on('error', (e) => console.error(e))
+    ipfs.on('ready', async () => {
+      const orbitdb = new OrbitDB(ipfs)
 
-    db.batch = (ops) => {
-        ops.map(async(op) => {
-          if(op.type == "put") {
-            let hash = await db.put(op.key, { name: op.value })
-            //console.log(hash)            
-          } else if(op.type == "del") {
-            let hash = await db.put(op.key, { name: null })
-            //console.log(hash)              
-          }
-        })
-    }
+      // Create / Open a database
+      db = await orbitdb.keyvalue('blockchain')
+      await db.load()
 
-    // wrap orbitdb.get to look like leveldb.get
-    db._get = (key, opts, cb) => {
-      //console.log(key)
-      // if(opts.keyEncoding == 'binary')
-      // else if(opts.keyEncoding == 'json')
-      let val = db.get(key)
-      //console.log(val)
-      if(!val) return cb(new Error(`${key} not found`), null)
-      cb(null, val)
-    }
+      db.batch = (ops) => {
+          ops.map(async(op) => {
+            if(op.type == "put") {
+              let hash = await db.put(op.key, { name: op.value })
+              //console.log(hash)            
+            } else if(op.type == "del") {
+              let hash = await db.put(op.key, { name: null })
+              //console.log(hash)              
+            }
+          })
+      }
 
-    self.db = self.db ? self.db : db
+      // wrap orbitdb.get to look like leveldb.get
+      db._get = (key, opts, cb) => {
+        //console.log(key)
+        // if(opts.keyEncoding == 'binary')
+        // else if(opts.keyEncoding == 'json')
+        let val = db.get(key)
+        //console.log(val)
+        if(!val) return cb(new Error(`${key} not found`), null)
+        cb(null, val)
+      }
 
-    if(self.db) console.log("db started")
+      self.db = self.db ? self.db : db
+
+      if(self.db) console.log("db started")
+      if(self.db._get) console.log("db ok")
+
+      resolve(self.db)
+    })
   })
 
-  // todo: this is sketchy, fix this later
- // return new Promise(resolve => setTimeout(resolve, 3000))
+  // await sleep()
+  // if(!db) console.log("where db")
+  // self.db = self.db ? self.db : db
 }
 
 /**
