@@ -147,6 +147,15 @@ Blockchain.prototype._initDB = async function() {
         })
     }
 
+    db.get = (key, opts, cb) => {
+      //console.log(key)
+      let val = db.get(key)
+      if(!val) cb(new Error(`${key} not found`), null)
+      else {
+        cb(null, val)
+      }
+    }
+
     self.db = self.db ? self.db : db
 
     if(self.db) console.log("db started")
@@ -167,7 +176,7 @@ Blockchain.prototype._init = async function (cb) {
 
   async.waterfall([
     (cb) => self._numberToHash(new BN(0), cb),
-    () => console.log("he'llya"),
+    //(hash, cb) => console.log("he'llya"),
     getHeads
   ], (err) => {
     if (err) {
@@ -1078,22 +1087,23 @@ Blockchain.prototype._numberToHash = function (number, cb) {
     return cb(null, hash)
   }
   //console.log("noot2")
-  let val = self.db.get(key)
-  if (!val) {
-    cb(new Error(`${key} does not exist`), null)
-  } 
-  else {
-    self._cache.numberToHash.set(key, hash)
-    cb(null, hash)
-  }
-  // self.db.get(key, {
-  //   keyEncoding: 'binary',
-  //   valueEncoding: 'binary'
-  // }, (err, hash) => {
-  //   if (err) return cb(err)
+  // let val = self.db.get(key)
+  // if (!val) {
+  //   cb(new Error(`${key} does not exist`), null)
+  // } 
+  // else {
+  //   //console.log("noot")
   //   self._cache.numberToHash.set(key, hash)
   //   cb(null, hash)
-  // })
+  // }
+  self.db.get(key, {
+    keyEncoding: 'binary',
+    valueEncoding: 'binary'
+  }, (err, hash) => {
+    if (err) return cb(err)
+    self._cache.numberToHash.set(key, hash)
+    cb(null, hash)
+  })
 }
 
 /**
