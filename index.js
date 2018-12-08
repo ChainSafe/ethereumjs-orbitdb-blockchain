@@ -105,8 +105,10 @@ Blockchain.prototype = {
 
 const BlockchainFactory = async (opts) => {
   let blockchain = new Blockchain(opts)
-  await blockchain._initDB()
+  let db = await blockchain._initDB()
+  blockchain.db = blockchain.db ? blockchain.db : db
   if(!blockchain.db) throw new Error("no db!!!")
+  else console.log("promise resolved!! yay")
 
   blockchain._init((err) => {
     if (err) throw err
