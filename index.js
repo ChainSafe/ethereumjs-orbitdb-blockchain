@@ -41,7 +41,7 @@ const ipfsOptions = {
 }
 
 // Create IPFS instance
-const ipfs = new IPFS(ipfsOptions)
+//const ipfs = new IPFS(ipfsOptions)
 
 function Blockchain (opts) {
   opts = opts || {}
@@ -64,12 +64,6 @@ function Blockchain (opts) {
   }
   self.db = opts.db || opts.blockDb
 
-  // defaults
-  // self._initDB((err) => {  
-  //   if (err) throw err
-  //   if(self.db) console.log("db started")
-  // })
-
   self.validate = (opts.validate === undefined ? true : opts.validate)
   self.ethash = self.validate ? new Ethash(self.db) : null
   self._heads = {}
@@ -86,6 +80,7 @@ function Blockchain (opts) {
   self._initDone = false
   self._putSemaphore = semaphore(1)
   self._initLock = new Stoplight()
+  //self.ipfs = new IPFS(ipfsOptions)
   //self._init()
 
 }
@@ -104,21 +99,18 @@ Blockchain.prototype = {
 }
 
 const BlockchainFactory = async (opts) => {
+  console.log("new blockchain!!")
   let blockchain = new Blockchain(opts)
+  blockchain.ipfs = new IPFS(ipfsOptions)
   let db = await blockchain._initDB()
-  //console.log(db);
   blockchain.db = blockchain.db ? blockchain.db : db
   if(!blockchain.db) throw new Error("no db!!!")
-  else console.log("promise resolved!! yay")
+  //else console.log("promise resolved!! yay")
 
   blockchain._init((err) => {
     if (err) throw err
     blockchain._initLock.go()
   })
-
-  if(!blockchain.db) {
-    sleep()
-  }
 
   //await db.close()
   return blockchain
@@ -137,16 +129,21 @@ Blockchain.prototype._initDB = async function() {
   let db
 
   return new Promise(function(resolve, reject) {
-    ipfs.on('error', (e) => console.error(e))
-    ipfs.on('ready', async () => {
-      const orbitdb = new OrbitDB(ipfs)
+    self.ipfs.on('error', (e) => console.error(e))
+    self.ipfs.on('ready', async () => {
+      const orbitdb = new OrbitDB(self.ipfs)
 
+      db = await orbitdb.open("orbitdb/QmafCznXZ65dnRqDUSesRr9PJhZVAcsgDg4DS6T2F2YRPP/blockchain", 
+        {create: true, type: 'keyvalue', overwrite: true})
+      await db.load()
+
+      //console.log("load")
       // Create / Open a database
-      db = await orbitdb.open("orbitdb/QmafCznXZ65dnRqDUSesRr9PJhZVAcsgDg4DS6T2F2YRPP/blockchain", {create: true, type: 'keyvalue'})
-      // if(!db) {
-      //   db = await orbitdb.create('blockchain', 'keyvalue')
-      // }
-      await db.load()      
+      db.open = async() => {
+        db = await orbitdb.open("orbitdb/QmafCznXZ65dnRqDUSesRr9PJhZVAcsgDg4DS6T2F2YRPP/blockchain", 
+          {create: true, type: 'keyvalue'})
+        //await db.load()      
+      }
 
       db.batch = (ops) => {
           ops.map(async(op) => {
@@ -156,12 +153,6 @@ Blockchain.prototype._initDB = async function() {
               let hash = await db.put(op.key, { name: null })
             }
           })
-      }
-
-      db.open = async() => {
-        await db.close()
-        await db.open("orbitdb/QmafCznXZ65dnRqDUSesRr9PJhZVAcsgDg4DS6T2F2YRPP/blockchain")
-        //await db.load()
       }
 
       // wrap orbitdb.get to look like leveldb.get
@@ -175,12 +166,15 @@ Blockchain.prototype._initDB = async function() {
 
       self.db = self.db ? self.db : db
 
-      if(self.db) console.log("db started")
-      if(self.db._get) console.log("db ok")
+      //if(self.db) console.log("db started")
+      //if(self.db._get) console.log("db ok")
 
       resolve(self.db)
       //resolve({db: self.db, orbitdb: orbitdb})
     })
+    // ipfs.start(() => {
+    //   resolve()
+    // })
   })
 
   // await sleep()

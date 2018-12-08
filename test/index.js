@@ -14,8 +14,8 @@ const rlp = ethUtil.rlp
 
 test('blockchain test', async function (t) {
   t.plan(73)
-  var blockchain = await BlockchainFactory()
-  await blockchain.db.close()
+  //var blockchain = await BlockchainFactory()
+  //await blockchain.db.close()
   //if (blockchain) console.log("blockchain initialize d")
 
   var genesisBlock
@@ -25,13 +25,17 @@ test('blockchain test', async function (t) {
   async.series([
 
     async function (done) {
+      var blockchain = await BlockchainFactory()
+
       blockchain.getHead(async function (err, head) {
-        //console.log("noot")
+        console.log("noot")
         if (err) return done(err)
         t.ok(true, 'should not crash on getting head of a blockchain without a genesis')
-        await blockchain.close();
+        //await blockchain.close()
         done()
       })
+
+      await blockchain.ipfs.stop()
 
       //await blockchain.db.drop()
       //return done
@@ -43,15 +47,15 @@ test('blockchain test', async function (t) {
       const bc0 = await BlockchainFactory({ chain: 'ropsten' })
       const bc1 = await BlockchainFactory({ common: common })
 
-      // async.parallel([
-      //   (cb) => bc0.getHead(cb),
-      //   (cb) => bc1.getHead(cb)
-      // ], (err, heads) => {
-      //   if (err) return done(err)
-      //   t.equals(heads[0].hash().toString('hex'), common.genesis().hash.slice(2), 'correct genesis hash')
-      //   t.equals(heads[0].hash().toString('hex'), heads[1].hash().toString('hex'), 'genesis blocks match')
-      //   done()
-      // })
+      async.parallel([
+        (cb) => bc0.getHead(cb),
+        (cb) => bc1.getHead(cb)
+      ], (err, heads) => {
+        if (err) return done(err)
+        t.equals(heads[0].hash().toString('hex'), common.genesis().hash.slice(2), 'correct genesis hash')
+        t.equals(heads[0].hash().toString('hex'), heads[1].hash().toString('hex'), 'genesis blocks match')
+        done()
+      })
     },
     async function alternateConstructors (done) {
       var db = level()
