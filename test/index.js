@@ -15,24 +15,25 @@ const rlp = ethUtil.rlp
 test('blockchain test', async function (t) {
   t.plan(73)
   var blockchain = await BlockchainFactory()
-  //setTimeout(blockchain._initDB(), 3000)
-  if (blockchain) console.log("blockchain initialized")
+  await blockchain.db.close()
+  //if (blockchain) console.log("blockchain initialize d")
 
   var genesisBlock
   var blocks = []
   var forkHeader
-  blockchain.validate = false
+ // blockchain.validate = false
   async.series([
-
-    function (done) {
+    async function (done) {
       blockchain.getHead(function (err, head) {
-        //console.log("noot")
         if (err) return done(err)
         t.ok(true, 'should not crash on getting head of a blockchain without a genesis')
-        done()
+        done
       })
+
+      //await blockchain.db.drop()
+      //return done
     },
-    async function initialization (done) {
+    async function initialization (done) {      
       const common = new Common('ropsten')
       //t.throws(async function () { await BlockchainFactory({ chain: 'ropsten', common: common }) }, /not allowed!$/, 'should throw on initialization with chain and common parameter') // eslint-disable-line
 

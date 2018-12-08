@@ -106,6 +106,7 @@ Blockchain.prototype = {
 const BlockchainFactory = async (opts) => {
   let blockchain = new Blockchain(opts)
   let db = await blockchain._initDB()
+  //blockchain.orbitdb = res.orbitdb
   blockchain.db = blockchain.db ? blockchain.db : db
   if(!blockchain.db) throw new Error("no db!!!")
   else console.log("promise resolved!! yay")
@@ -118,6 +119,8 @@ const BlockchainFactory = async (opts) => {
   if(!blockchain.db) {
     sleep()
   }
+
+  //await db.close()
   return blockchain
 }
 
@@ -139,28 +142,33 @@ Blockchain.prototype._initDB = async function() {
       const orbitdb = new OrbitDB(ipfs)
 
       // Create / Open a database
-      db = await orbitdb.keyvalue('blockchain')
-      await db.load()
+      db = await orbitdb.open("orbitdb/QmafCznXZ65dnRqDUSesRr9PJhZVAcsgDg4DS6T2F2YRPP/blockchain", {create: true, type: 'keyvalue'})
+      // if(!db) {
+      //   db = await orbitdb.create('blockchain', 'keyvalue')
+      // }
+      await db.load()      
 
       db.batch = (ops) => {
           ops.map(async(op) => {
             if(op.type == "put") {
               let hash = await db.put(op.key, { name: op.value })
-              //console.log(hash)            
             } else if(op.type == "del") {
               let hash = await db.put(op.key, { name: null })
-              //console.log(hash)              
             }
           })
       }
 
+      db.open = async() => {
+        await db.close()
+        await db.open("orbitdb/QmafCznXZ65dnRqDUSesRr9PJhZVAcsgDg4DS6T2F2YRPP/blockchain")
+        //await db.load()
+      }
+
       // wrap orbitdb.get to look like leveldb.get
       db._get = (key, opts, cb) => {
-        //console.log(key)
         // if(opts.keyEncoding == 'binary')
         // else if(opts.keyEncoding == 'json')
         let val = db.get(key)
-        //console.log(val)
         if(!val) return cb(new Error(`${key} not found`), null)
         cb(null, val)
       }
@@ -171,12 +179,9 @@ Blockchain.prototype._initDB = async function() {
       if(self.db._get) console.log("db ok")
 
       resolve(self.db)
+      //resolve({db: self.db, orbitdb: orbitdb})
     })
   })
-
-  // await sleep()
-  // if(!db) console.log("where db")
-  // self.db = self.db ? self.db : db
 }
 
 /**
