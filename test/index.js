@@ -24,7 +24,7 @@ test('blockchain test', async function (t) {
  // blockchain.validate = false
   async.series([
 
-    async function (done) {
+    function (done) {
       blockchain.getHead(async function (err, head) {
         //console.log("noot")
         if (err) return done(err)
